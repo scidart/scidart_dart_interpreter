@@ -1,10 +1,11 @@
 import 'package:scidart_dart_interpreter/src/token.dart';
 
 class Lexer {
-  int pos = 0;
-  String text;
+  int _pos = 0;
+  final String _text;
+  Token _currentToken = Token(TokenType.sof);
 
-  Lexer(this.text);
+  Lexer(this._text);
 
   bool _isWhiteSpace(String char) {
     return char == ' ';
@@ -15,22 +16,22 @@ class Lexer {
   }
 
   String _skipWhiteSpace() {
-    while(_isWhiteSpace(text[pos]) && (pos < text.length - 1)) {
-      pos++;
+    while(_isWhiteSpace(_text[_pos]) && (_pos < _text.length - 1)) {
+      _pos++;
     }
 
-    return text[pos];
+    return _text[_pos];
   }
 
   String _getAllNumbers() {
     var number = '';
 
     for(;;) {
-      if (pos < text.length && _isDigit(text[pos])) {
-        number += text[pos];
-        pos++;
+      if (_pos < _text.length && _isDigit(_text[_pos])) {
+        number += _text[_pos];
+        _pos++;
       } else {
-        pos--;
+        _pos--;
         break;
       }
     }
@@ -38,29 +39,33 @@ class Lexer {
     return number;
   }
 
+  Token getCurrentToken() {
+    return _currentToken;
+  }
+
   Token getNextToken() {
-    if (pos >= text.length) {
-      return Token(TokenType.eof);
+    if (_pos >= _text.length) {
+      _currentToken = Token(TokenType.eof);
     } else {
-      var currentChar = text[pos];
-      Token returnPosToken;
+      var currentChar = _text[_pos];
 
       if (_isWhiteSpace(currentChar)) {
         currentChar = _skipWhiteSpace();
       }
 
       if (_isDigit(currentChar)) {
-        returnPosToken = Token(TokenType.integer, value: _getAllNumbers());
+        _currentToken = Token(TokenType.integer, value: _getAllNumbers());
       } else if (Token.stringSymbolToToken[currentChar] != null) {
-        returnPosToken = Token.stringSymbolToToken[currentChar]!;
-      } else if (_isWhiteSpace(currentChar) && (pos == text.length - 1)) {
-        returnPosToken = Token(TokenType.eof);
+        _currentToken = Token.stringSymbolToToken[currentChar]!;
+      } else if (_isWhiteSpace(currentChar) && (_pos == _text.length - 1)) {
+        _currentToken = Token(TokenType.eof);
       } else {
-        throw Exception('Error parsing the code at positon: $pos , char: ${text[pos]}');
+        throw Exception('Error parsing the code at positon: $_pos , char: ${_text[_pos]}');
       }
 
-      pos++;
-      return returnPosToken;
+      _pos++;
     }
+
+    return _currentToken;
   }
 }

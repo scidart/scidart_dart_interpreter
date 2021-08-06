@@ -1,10 +1,13 @@
 enum TokenType {
+  sof,
   integer,
   plus,
   minus,
   mult,
   div,
-  eof
+  eof,
+  lparen,
+  rparen
 }
 
 class Token {
@@ -15,14 +18,18 @@ class Token {
     '+': Token(TokenType.plus),
     '-': Token(TokenType.minus),
     '*': Token(TokenType.mult),
-    '/': Token(TokenType.div)
+    '/': Token(TokenType.div),
+    '(': Token(TokenType.lparen),
+    ')': Token(TokenType.rparen)
   };
 
   static var tokenToString = <Token, String>{
     Token(TokenType.plus): '+',
     Token(TokenType.minus): '-',
     Token(TokenType.mult): '*',
-    Token(TokenType.div): '/'
+    Token(TokenType.div): '/',
+    Token(TokenType.lparen): '(',
+    Token(TokenType.rparen): ')',
   };
 
   Token(this.type, {String? value}) {
@@ -31,5 +38,26 @@ class Token {
 
   int getInt() {
     return int.parse(_value!);
+  }
+
+  bool isOperand() {
+    return type == TokenType.plus
+        || type == TokenType.minus
+        || type == TokenType.mult
+        || type == TokenType.div;
+  }
+
+  bool isMulDiv() {
+    return type == TokenType.mult
+        || type == TokenType.div;
+  }
+
+  bool isPlusMinus() {
+    return type == TokenType.plus
+        || type == TokenType.minus;
+  }
+
+  bool isNotEof() {
+    return type != TokenType.eof;
   }
 }

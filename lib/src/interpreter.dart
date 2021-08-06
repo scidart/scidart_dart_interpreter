@@ -1,75 +1,143 @@
 import 'package:scidart_dart_interpreter/src/lexer.dart';
 import 'package:scidart_dart_interpreter/src/token.dart';
 
-class Interpreter {
+import 'ast.dart';
+import 'parser.dart';
 
-  Interpreter();
+class Interpreter2 {
+  int _factor(Lexer lex) {
+    var result;
+    switch (lex.getNextToken().type) {
+      case TokenType.integer:
+        result = lex.getCurrentToken().getInt();
+        break;
+
+      case TokenType.lparen:
+        result = _expr(lex, 0);
+        break;
+
+      default:
+        _throwError(lex.getCurrentToken());
+    }
+
+    return result;
+  }
+
+  int _term(Lexer lex, int result) {
+    result = _factor(lex);
+
+    while (lex.getNextToken().isMulDiv())  {
+      switch (lex.getCurrentToken().type) {
+        case TokenType.mult:
+          result *= _factor(lex);
+          break;
+
+        case TokenType.div:
+          result = result ~/ _factor(lex);
+          break;
+
+        default:
+          _throwError(lex.getCurrentToken());
+      }
+    }
+
+    return result;
+  }
+
+  void _throwError(Token token) {
+    throw Exception('error parsing ${token.type}');
+  }
+
+  int _expr(Lexer lex, int result) {
+    // expr   : term ((PLUS | MINUS) term)*
+    // term   : factor ((MUL | DIV) factor)*
+    // factor : INTEGER | LPAREN expr RPAREN
+
+    // expr
+    result = _term(lex, result);
+    while (lex.getCurrentToken().isPlusMinus()) {
+      switch (lex.getCurrentToken().type) {
+        case TokenType.plus:
+          result += _term(lex, result);
+          break;
+
+        case TokenType.minus:
+          result -= _term(lex, result);
+          break;
+
+        default:
+          _throwError(lex.getCurrentToken());
+      }
+    }
+
+    return result;
+  }
 
   int process(String text) {
-    return _expr(text);
-  }
-
-  bool _isNotExpectedToken(Token actualToken, TokenType expectedToken) {
-    return actualToken.type != expectedToken;
-  }
-
-  bool _isFirstPriorityOperand(Token opToken) {
-    return _isNotExpectedToken(opToken, TokenType.mult)
-        || _isNotExpectedToken(opToken, TokenType.div);
-  }
-
-  bool _isSecondPriorityOperand(Token opToken) {
-    return _isNotExpectedToken(opToken, TokenType.plus)
-        || _isNotExpectedToken(opToken, TokenType.minus);
-  }
-
-  // parser / interpreter
-  Token _factor(Token opToken) {
-    if (_isNotExpectedToken(opToken, TokenType.integer)) {
-      throw Exception('Expected plus signal but I got: ${opToken.type}');
-    }
-    return opToken;
-  }
-
-  int _term() {
-
-  }
-
-  int _expr(String text) {
     var lex = Lexer(text);
+    var result = 0;
+    return _expr(lex, result);
+  }
+}
 
-    var currentToken = lex.getNextToken();
-    var term1 = _factor(currentToken);
-    var res = term1.getInt();
+class Interpreter {
+  int _visit(Ast node) {
+    switch (node.type) {
 
-    currentToken = lex.getNextToken();
-    loop: while (_isOperand(currentToken)) {
-      switch(currentToken.type) {
-        case TokenType.plus:
-          var term2 = _factor(lex.getNextToken());
-          res += term2.getInt();
-          break;
-        case TokenType.minus:
-          var term2 = _factor(lex.getNextToken());
-          res -= term2.getInt();
-          break;
-        case TokenType.mult:
-          var term2 = _factor(lex.getNextToken());
-          res *= term2.getInt();
-          break;
-        case TokenType.div:
-          var term2 = _factor(lex.getNextToken());
-          res ~/= term2.getInt();
-          break;
-        case TokenType.integer:
-          throw Exception('Unexpected operator token: ${currentToken.type}');
-        case TokenType.eof:
-          break loop;
-      }
+      case NodeType.binop:
+        return _visitBinOp(node as BinOp);
 
-      currentToken = lex.getNextToken();
+      case NodeType.num:
+        return _visitNum(node as Num);
+
+      case NodeType.unaryop:
+        return _visitUnaryOp(node as UnaryOp);
+
+      default:
+        throw Exception('error interpreting ${node.type}');
     }
+  }
 
-    return res;
+  int _visitBinOp(BinOp node) {
+    switch (node.op.type) {
+      case TokenType.plus:
+        return _visit(node.left) + _visit(node.right);
+
+      case TokenType.minus:
+        return _visit(node.left) - _visit(node.right);
+
+      case TokenType.mult:
+        return _visit(node.left) * _visit(node.right);
+
+      case TokenType.div:
+        return _visit(node.left) ~/ _visit(node.right);
+
+      default:
+        throw Exception('error interpreting ${node.op.type}');
+    }
+  }
+
+  int _visitNum(Num node) {
+    return node.token.getInt();
+  }
+
+  int _visitUnaryOp(UnaryOp node) {
+    switch (node.op.type) {
+
+      case TokenType.plus:
+        return _visit(node.expr);
+
+      case TokenType.minus:
+        return -_visit(node.expr);
+
+      default:
+        throw Exception('error interpreting ${node.op.type}');
+    }
+  }
+
+  int process(String text) {
+    var lex = Lexer(text);
+    var parser = Parser(lex);
+    return _visit(parser.ast);
   }
 }

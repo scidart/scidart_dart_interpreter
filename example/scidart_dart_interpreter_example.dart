@@ -1,6 +1,7 @@
-import 'package:scidart_dart_interpreter/scidart_dart_interpreter.dart';
+import 'package:scidart_dart_interpreter/src/interpreter.dart';
 
 void main() {
-  var awesome = Awesome();
-  print('awesome: ${awesome.isAwesome}');
+  var interpreter = Interpreter();
+  var res = interpreter.process('10+10*10');
+  print(res);
 }

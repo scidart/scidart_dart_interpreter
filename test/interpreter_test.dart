@@ -101,5 +101,61 @@ void main() {
 
       expect(res, 15);
     });
+
+    test('10+10*10', () {
+      var res = interpreter?.process('10+10*10');
+      print(res);
+
+      expect(res, 110);
+    });
+
+    test('10+10/10', () {
+      var res = interpreter?.process('10+10/10');
+      print(res);
+
+      expect(res, 11);
+    });
+
+    test('(10+10)/10', () {
+      var res = interpreter?.process('(10+10)/10');
+      print(res);
+
+      expect(res, 2);
+    });
+
+    test('7 + 3 * (10 / (12 / (3 + 1) - 1))', () {
+      var res = interpreter?.process('7 + 3 * (10 / (12 / (3 + 1) - 1))');
+      print(res);
+
+      expect(res, 22);
+    });
+
+    test('- - 1', () {
+      var res = interpreter?.process('- - 1');
+      print(res);
+
+      expect(res, 1);
+    });
+
+    test('5---2', () {
+      var res = interpreter?.process('5---2');
+      print(res);
+
+      expect(res, 3);
+    });
+
+    test('5---+-3', () {
+      var res = interpreter?.process('5---+-3');
+      print(res);
+
+      expect(res, 8);
+    });
+
+    test('5 - - - + - (3 + 4) - +2', () {
+      var res = interpreter?.process('5 - - - + - (3 + 4) - +2');
+      print(res);
+
+      expect(res, 10);
+    });
   });
 }
