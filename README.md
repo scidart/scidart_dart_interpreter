@@ -20,3 +20,13 @@ main() {
 Please file feature requests and bugs at the [issue tracker][tracker].
 
 [tracker]: http://example.com/issues/replaceme
+
+## References
+### grammar rules dart language
+- https://github.com/dart-lang/sdk/issues/19298
+- https://pub.dev/packages/petitparser
+- https://github.com/petitparser/dart-petitparser
+- https://github.com/dart-lang/sdk/blob/master/tools/spec_parser/Dart.g
+
+### tutorial
+- https://ruslanspivak.com/lsbasi-part9/
