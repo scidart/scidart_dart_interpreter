@@ -7,16 +7,65 @@ class Lexer {
 
   Lexer(this._text);
 
-  bool _isWhiteSpace(String char) {
-    return char == ' ';
+  bool _isCompoundSymbol(String currentChar) {
+    if (_pos + 1 == _text.length) {
+      return false;
+    }
+
+    var firstPart = Token.stringCompoundSymbolToToken[currentChar];
+    var secondPart = Token.stringCompoundSymbolToToken[_text[_pos + 1]];
+
+    return firstPart != null &&
+        secondPart != null &&
+        firstPart.type == secondPart.type;
+  }
+
+  bool _isWhiteSpaceOrNewLine(String char) {
+    return char == ' ' || char == '\n';
+  }
+
+  bool _isAlpha(String char) {
+    // https://stackoverflow.com/a/55768254/6846888
+    return char.contains(RegExp(r'[a-zA-Z]'));
+  }
+
+  bool _isAlphanum(String char) {
+    return char.contains(RegExp(r'[a-zA-Z0-9]'));
   }
 
   bool _isDigit(String char) {
     return double.tryParse(char) != null;
   }
 
+  Token _id() {
+    var result = '';
+    while(_isAlphanum(_text[_pos]) && (_pos < _text.length - 1)) {
+      result += _text[_pos];
+      _pos++;
+    }
+    _pos--;
+
+    var token;
+    if (Token.reservedKeywordsStringToToken[result] != null) {
+      token = Token.reservedKeywordsStringToToken[result];
+    } else {
+      token = Token(TokenType.id, value: result);
+    }
+
+    return token;
+  }
+
+  Token _getCompoundSymbol() {
+    var token = Token.stringCompoundSymbolToToken[_text[_pos]] ?? Token(TokenType.eof);
+    while (Token.stringCompoundSymbolToToken[_text[_pos]] != null) {
+      _pos++;
+    }
+
+    return token;
+  }
+
   String _skipWhiteSpace() {
-    while(_isWhiteSpace(_text[_pos]) && (_pos < _text.length - 1)) {
+    while(_isWhiteSpaceOrNewLine(_text[_pos]) && (_pos < _text.length - 1)) {
       _pos++;
     }
 
@@ -49,15 +98,19 @@ class Lexer {
     } else {
       var currentChar = _text[_pos];
 
-      if (_isWhiteSpace(currentChar)) {
+      if (_isWhiteSpaceOrNewLine(currentChar)) {
         currentChar = _skipWhiteSpace();
       }
 
-      if (_isDigit(currentChar)) {
+      if (_isAlpha(currentChar)) {
+        _currentToken = _id();
+      } else if (_isDigit(currentChar)) {
         _currentToken = Token(TokenType.integer, value: _getAllNumbers());
+      } else if (_isCompoundSymbol(currentChar)) {
+        _currentToken = _getCompoundSymbol();
       } else if (Token.stringSymbolToToken[currentChar] != null) {
         _currentToken = Token.stringSymbolToToken[currentChar]!;
-      } else if (_isWhiteSpace(currentChar) && (_pos == _text.length - 1)) {
+      } else if (_isWhiteSpaceOrNewLine(currentChar) && (_pos == _text.length - 1)) {
         _currentToken = Token(TokenType.eof);
       } else {
         throw Exception('Error parsing the code at positon: $_pos , char: ${_text[_pos]}');

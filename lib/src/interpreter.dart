@@ -81,21 +81,16 @@ class Interpreter2 {
 }
 
 class Interpreter {
-  int _visit(Ast node) {
-    switch (node.type) {
+  var globalScope = <String, dynamic>{};
 
-      case NodeType.binop:
-        return _visitBinOp(node as BinOp);
+  int process(String text) {
+    var lex = Lexer(text);
+    var parser = Parser(lex);
+    var res = _visit(parser.ast);
 
-      case NodeType.num:
-        return _visitNum(node as Num);
+    print(globalScope);
 
-      case NodeType.unaryop:
-        return _visitUnaryOp(node as UnaryOp);
-
-      default:
-        throw Exception('error interpreting ${node.type}');
-    }
+    return res;
   }
 
   int _visitBinOp(BinOp node) {
@@ -135,9 +130,59 @@ class Interpreter {
     }
   }
 
-  int process(String text) {
-    var lex = Lexer(text);
-    var parser = Parser(lex);
-    return _visit(parser.ast);
+  void _visitCompound(Compound node) {
+    for (var child in node.children) {
+      _visit(child);
+    }
+  }
+
+  void _visitAssign(Assign node) {
+    var varName = node.left.value;
+    globalScope[varName] = _visit(node.right);
+  }
+
+  dynamic _visitVar(Var node) {
+    var varName = node.value;
+    var val = globalScope[varName];
+    if (val == null) {
+      throw Exception('variable not declared: $varName');
+    } else {
+      return val;
+    }
+  }
+
+  void _visitNoOp(NoOp node) {
+  }
+
+  int _visit(Ast node) {
+    switch (node.type) {
+
+      case NodeType.binOp:
+        return _visitBinOp(node as BinOp);
+
+      case NodeType.num:
+        return _visitNum(node as Num);
+
+      case NodeType.unaryOp:
+        return _visitUnaryOp(node as UnaryOp);
+
+      case NodeType.compound:
+        _visitCompound(node as Compound);
+        return 0;
+
+      case NodeType.assign:
+        _visitAssign(node as Assign);
+        return 0;
+
+      case NodeType.variable:
+        return _visitVar(node as Var);
+
+      case NodeType.noOp:
+        _visitNoOp(node as NoOp);
+        return 0;
+
+      default:
+        throw Exception('error interpreting ${node.type}');
+    }
   }
 }

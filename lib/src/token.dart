@@ -7,12 +7,30 @@ enum TokenType {
   div,
   eof,
   lparen,
-  rparen
+  rparen,
+  semi,
+  dot,
+
+  assign,
+
+  id,
+  begin,
+  end,
 }
 
 class Token {
   TokenType type;
   String? _value;
+
+  static var reservedKeywordsStringToToken = <String, Token>{
+    'BEGIN': Token(TokenType.begin),
+    'END': Token(TokenType.end),
+  };
+
+  static var stringCompoundSymbolToToken = <String, Token>{
+    ':': Token(TokenType.assign),
+    '=': Token(TokenType.assign),
+  };
 
   static var stringSymbolToToken = <String, Token>{
     '+': Token(TokenType.plus),
@@ -20,7 +38,9 @@ class Token {
     '*': Token(TokenType.mult),
     '/': Token(TokenType.div),
     '(': Token(TokenType.lparen),
-    ')': Token(TokenType.rparen)
+    ')': Token(TokenType.rparen),
+    ';': Token(TokenType.semi),
+    '.': Token(TokenType.dot),
   };
 
   static var tokenToString = <Token, String>{
@@ -30,6 +50,8 @@ class Token {
     Token(TokenType.div): '/',
     Token(TokenType.lparen): '(',
     Token(TokenType.rparen): ')',
+    Token(TokenType.semi): ';',
+    Token(TokenType.dot): '.',
   };
 
   Token(this.type, {String? value}) {
@@ -38,6 +60,10 @@ class Token {
 
   int getInt() {
     return int.parse(_value!);
+  }
+
+  String getValue() {
+    return _value!;
   }
 
   bool isOperand() {

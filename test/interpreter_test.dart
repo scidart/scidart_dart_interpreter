@@ -157,5 +157,30 @@ void main() {
 
       expect(res, 10);
     });
+
+
+    test('BEGIN a := 2; END.', () {
+      var res = interpreter?.process('BEGIN a := 2; END.');
+      print(res);
+
+      expect(res, 10);
+    });
+
+    test('BEGIN BEGIN a := 2; ....', () {
+      var res = interpreter?.process('''
+BEGIN
+  BEGIN
+      number := 2;
+      a := number;
+      b := 10 * a + 10 * number / 4;
+      c := a - - b;
+  END;
+    x := 11;
+END.
+''');
+      print(res);
+
+      expect(res, 0);
+    });
   });
 }
