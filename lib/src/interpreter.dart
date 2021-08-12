@@ -4,86 +4,90 @@ import 'package:scidart_dart_interpreter/src/token.dart';
 import 'ast.dart';
 import 'parser.dart';
 
-class Interpreter2 {
-  int _factor(Lexer lex) {
-    var result;
-    switch (lex.getNextToken().type) {
-      case TokenType.integer:
-        result = lex.getCurrentToken().getInt();
-        break;
-
-      case TokenType.lparen:
-        result = _expr(lex, 0);
-        break;
-
-      default:
-        _throwError(lex.getCurrentToken());
-    }
-
-    return result;
-  }
-
-  int _term(Lexer lex, int result) {
-    result = _factor(lex);
-
-    while (lex.getNextToken().isMulDiv())  {
-      switch (lex.getCurrentToken().type) {
-        case TokenType.mult:
-          result *= _factor(lex);
-          break;
-
-        case TokenType.div:
-          result = result ~/ _factor(lex);
-          break;
-
-        default:
-          _throwError(lex.getCurrentToken());
-      }
-    }
-
-    return result;
-  }
-
-  void _throwError(Token token) {
-    throw Exception('error parsing ${token.type}');
-  }
-
-  int _expr(Lexer lex, int result) {
-    // expr   : term ((PLUS | MINUS) term)*
-    // term   : factor ((MUL | DIV) factor)*
-    // factor : INTEGER | LPAREN expr RPAREN
-
-    // expr
-    result = _term(lex, result);
-    while (lex.getCurrentToken().isPlusMinus()) {
-      switch (lex.getCurrentToken().type) {
-        case TokenType.plus:
-          result += _term(lex, result);
-          break;
-
-        case TokenType.minus:
-          result -= _term(lex, result);
-          break;
-
-        default:
-          _throwError(lex.getCurrentToken());
-      }
-    }
-
-    return result;
-  }
-
-  int process(String text) {
-    var lex = Lexer(text);
-    var result = 0;
-    return _expr(lex, result);
-  }
-}
+// class Interpreter2 {
+//   int _factor(Lexer lex) {
+//     var result;
+//     switch (lex.getNextToken().type) {
+//       case TokenType.integer:
+//         result = lex.getCurrentToken().getInt();
+//         break;
+//
+//       case TokenType.lparen:
+//         result = _expr(lex, 0);
+//         break;
+//
+//       default:
+//         _throwError(lex.getCurrentToken());
+//     }
+//
+//     return result;
+//   }
+//
+//   int _term(Lexer lex, int result) {
+//     result = _factor(lex);
+//
+//     while (lex.getNextToken().isMulDiv())  {
+//       switch (lex.getCurrentToken().type) {
+//         case TokenType.mult:
+//           result *= _factor(lex);
+//           break;
+//
+//         case TokenType.intergerDiv:
+//           result = result ~/ _factor(lex);
+//           break;
+//
+//         default:
+//           _throwError(lex.getCurrentToken());
+//       }
+//     }
+//
+//     return result;
+//   }
+//
+//   void _throwError(Token token) {
+//     throw Exception('error parsing ${token.type}');
+//   }
+//
+//   int _expr(Lexer lex, int result) {
+//     // expr   : term ((PLUS | MINUS) term)*
+//     // term   : factor ((MUL | DIV) factor)*
+//     // factor : INTEGER | LPAREN expr RPAREN
+//
+//     // expr
+//     result = _term(lex, result);
+//     while (lex.getCurrentToken().isPlusMinus()) {
+//       switch (lex.getCurrentToken().type) {
+//         case TokenType.plus:
+//           result += _term(lex, result);
+//           break;
+//
+//         case TokenType.minus:
+//           result -= _term(lex, result);
+//           break;
+//
+//         default:
+//           _throwError(lex.getCurrentToken());
+//       }
+//     }
+//
+//     return result;
+//   }
+//
+//   int process(String text) {
+//     var lex = Lexer(text);
+//     var result = 0;
+//     return _expr(lex, result);
+//   }
+// }
 
 class Interpreter {
   var globalScope = <String, dynamic>{};
 
-  int process(String text) {
+  void _throwError(Ast node) {
+    throw Exception('error interpreting ${node.type}');
+  }
+
+  num process(String text) {
     var lex = Lexer(text);
     var parser = Parser(lex);
     var res = _visit(parser.ast);
@@ -93,23 +97,53 @@ class Interpreter {
     return res;
   }
 
-  int _visitBinOp(BinOp node) {
+  num _visitProgram(Program node) {
+    return _visit(node.block);
+  }
+
+  int _visitBlock(Block node) {
+    for (var decl in node.declarations) {
+      _visit(decl);
+    }
+    return 0;
+  }
+
+  int _visitVarDeclaration(VarDeclaration node) {
+    return 0;
+  }
+
+  int _visitType(Type node) {
+    return 0;
+  }
+
+  num _visitBinOp(BinOp node) {
+    var result;
     switch (node.op.type) {
       case TokenType.plus:
-        return _visit(node.left) + _visit(node.right);
+        result = _visit(node.left) + _visit(node.right);
+        break;
 
       case TokenType.minus:
-        return _visit(node.left) - _visit(node.right);
+        result = _visit(node.left) - _visit(node.right);
+        break;
 
       case TokenType.mult:
-        return _visit(node.left) * _visit(node.right);
+        result = _visit(node.left) * _visit(node.right);
+        break;
 
-      case TokenType.div:
-        return _visit(node.left) ~/ _visit(node.right);
+      case TokenType.intergerDiv:
+        result = _visit(node.left) ~/ _visit(node.right);
+        break;
+
+      case TokenType.floatDiv:
+        result = _visit(node.left) / _visit(node.right);
+        break;
 
       default:
-        throw Exception('error interpreting ${node.op.type}');
+        _throwError(node);
     }
+
+    return result;
   }
 
   int _visitNum(Num node) {
@@ -117,17 +151,22 @@ class Interpreter {
   }
 
   int _visitUnaryOp(UnaryOp node) {
+    var result;
     switch (node.op.type) {
 
       case TokenType.plus:
-        return _visit(node.expr);
+        result = _visit(node.expr);
+        break;
 
       case TokenType.minus:
-        return -_visit(node.expr);
+        result = -_visit(node.expr);
+        break;
 
       default:
-        throw Exception('error interpreting ${node.op.type}');
+        _throwError(node);
     }
+
+    return result;
   }
 
   void _visitCompound(Compound node) {
@@ -137,12 +176,12 @@ class Interpreter {
   }
 
   void _visitAssign(Assign node) {
-    var varName = node.left.value;
+    var varName = node.left.token.getValue();
     globalScope[varName] = _visit(node.right);
   }
 
   dynamic _visitVar(Var node) {
-    var varName = node.value;
+    var varName = node.token.getValue();
     var val = globalScope[varName];
     if (val == null) {
       throw Exception('variable not declared: $varName');
@@ -154,35 +193,61 @@ class Interpreter {
   void _visitNoOp(NoOp node) {
   }
 
-  int _visit(Ast node) {
+  num _visit(Ast node) {
+    var result;
     switch (node.type) {
 
       case NodeType.binOp:
-        return _visitBinOp(node as BinOp);
+        result = _visitBinOp(node as BinOp);
+        break;
 
       case NodeType.num:
-        return _visitNum(node as Num);
+        result = _visitNum(node as Num);
+        break;
 
       case NodeType.unaryOp:
-        return _visitUnaryOp(node as UnaryOp);
+        result = _visitUnaryOp(node as UnaryOp);
+        break;
 
       case NodeType.compound:
         _visitCompound(node as Compound);
-        return 0;
+        result = 0;
+        break;
 
       case NodeType.assign:
         _visitAssign(node as Assign);
-        return 0;
+        result = 0;
+        break;
 
       case NodeType.variable:
-        return _visitVar(node as Var);
+        result = _visitVar(node as Var);
+        break;
 
       case NodeType.noOp:
         _visitNoOp(node as NoOp);
-        return 0;
+        result = 0;
+        break;
+
+      case NodeType.type:
+        result = _visitType(node as Type);
+        break;
+
+      case NodeType.varDeclaration:
+        result = _visitVarDeclaration(node as VarDeclaration);
+        break;
+
+      case NodeType.program:
+        result = _visitProgram(node as Program);
+        break;
+
+      case NodeType.block:
+        result = _visitBlock(node as Block);
+        break;
 
       default:
-        throw Exception('error interpreting ${node.type}');
+        _throwError(node);
     }
+
+    return result;
   }
 }

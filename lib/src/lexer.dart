@@ -24,6 +24,18 @@ class Lexer {
     return char == ' ' || char == '\n';
   }
 
+  bool _isWhiteSpace(String char) {
+    return char == ' ' || char == '\n';
+  }
+
+  bool _isOpeningComment(String char) {
+    return char == '{';
+  }
+
+  bool _isNotClosingComment(String char) {
+    return char != '}';
+  }
+
   bool _isAlpha(String char) {
     // https://stackoverflow.com/a/55768254/6846888
     return char.contains(RegExp(r'[a-zA-Z]'));
@@ -55,6 +67,17 @@ class Lexer {
     return token;
   }
 
+  Token _number() {
+    var firstPart = _getAllNumbers();
+    if (_text[_pos] == '.') {
+      _pos++;
+      var secondPart = _getAllNumbers();
+      return Token(TokenType.realConst, value: firstPart + '.' + secondPart);
+    } else {
+      return Token(TokenType.intergerConst, value: firstPart);
+    }
+  }
+
   Token _getCompoundSymbol() {
     var token = Token.stringCompoundSymbolToToken[_text[_pos]] ?? Token(TokenType.eof);
     while (Token.stringCompoundSymbolToToken[_text[_pos]] != null) {
@@ -64,10 +87,19 @@ class Lexer {
     return token;
   }
 
-  String _skipWhiteSpace() {
-    while(_isWhiteSpaceOrNewLine(_text[_pos]) && (_pos < _text.length - 1)) {
+  String _skipWhiteSpaceOrNewLine() {
+    while (_isWhiteSpace(_text[_pos]) && (_pos < _text.length - 1)) {
       _pos++;
     }
+
+    return _text[_pos];
+  }
+
+  String _skipComment() {
+    while (_isNotClosingComment(_text[_pos]) && (_pos < _text.length - 1)) {
+      _pos++;
+    }
+    _pos++;
 
     return _text[_pos];
   }
@@ -99,21 +131,26 @@ class Lexer {
       var currentChar = _text[_pos];
 
       if (_isWhiteSpaceOrNewLine(currentChar)) {
-        currentChar = _skipWhiteSpace();
+        currentChar = _skipWhiteSpaceOrNewLine();
+      }
+
+      if (_isOpeningComment(currentChar)) {
+        currentChar =_skipComment();
+        currentChar = _skipWhiteSpaceOrNewLine();
       }
 
       if (_isAlpha(currentChar)) {
         _currentToken = _id();
       } else if (_isDigit(currentChar)) {
-        _currentToken = Token(TokenType.integer, value: _getAllNumbers());
+        _currentToken = _number();
       } else if (_isCompoundSymbol(currentChar)) {
         _currentToken = _getCompoundSymbol();
       } else if (Token.stringSymbolToToken[currentChar] != null) {
         _currentToken = Token.stringSymbolToToken[currentChar]!;
-      } else if (_isWhiteSpaceOrNewLine(currentChar) && (_pos == _text.length - 1)) {
+      } else if (_pos == _text.length - 1) {
         _currentToken = Token(TokenType.eof);
       } else {
-        throw Exception('Error parsing the code at positon: $_pos , char: ${_text[_pos]}');
+        throw Exception('Error lexing the code at positon: $_pos , char: ${_text[_pos]}');
       }
 
       _pos++;
