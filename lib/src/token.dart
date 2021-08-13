@@ -95,6 +95,10 @@ class Token {
     return int.parse(_value!);
   }
 
+  double getFloat() {
+    return double.parse(_value!);
+  }
+
   String getValue() {
     return _value!;
   }

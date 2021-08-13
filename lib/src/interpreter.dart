@@ -98,20 +98,19 @@ class Interpreter {
   }
 
   num _visitProgram(Program node) {
-    return _visit(node.block as Block);
+    return _visit(node.block);
   }
 
   int _visitBlock(Block node) {
     for (var decl in node.declarations) {
-      _visit(decl as VarDeclaration);
+      _visit(decl);
     }
+    _visit(node.compoundStatement);
     return 0;
   }
 
-  dynamic _visitVarDeclaration(VarDeclaration node) {
-    var varName = node.varNode.value;
-    var varValue = globalScope[varName];
-    return varValue;
+  int _visitVarDeclaration(VarDeclaration node) {
+    return 0;
   }
 
   int _visitType(Type node) {
@@ -148,8 +147,19 @@ class Interpreter {
     return result;
   }
 
-  int _visitNum(Num node) {
-    return node.token.getInt();
+  num _visitNum(Num node) {
+    var result;
+    switch (node.token.type) {
+      case TokenType.intergerConst:
+        result = node.token.getInt();
+        break;
+      case TokenType.realConst:
+        result = node.token.getFloat();
+        break;
+      default:
+        _throwError(node);
+    }
+    return result;
   }
 
   int _visitUnaryOp(UnaryOp node) {

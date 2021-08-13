@@ -213,6 +213,7 @@ class Parser {
   Ast _expr() {
     var node = _term();
     while (lex.getCurrentToken().isPlusMinus()) {
+      var currentToken = lex.getCurrentToken();
       switch (lex.getCurrentToken().type) {
         case TokenType.plus:
           _eat(TokenType.plus);
@@ -223,10 +224,10 @@ class Parser {
           break;
 
         default:
-          _throwError(lex.getCurrentToken());
+          _throwError(currentToken);
       }
 
-      node = BinOp(node, lex.getCurrentToken(), _term());
+      node = BinOp(node, currentToken, _term());
     }
 
     return node;
@@ -237,6 +238,7 @@ class Parser {
     var node = _factor();
 
     while (lex.getCurrentToken().isMulDiv())  {
+      var currentToken = lex.getCurrentToken();
       switch (lex.getCurrentToken().type) {
         case TokenType.mult:
           _eat(TokenType.mult);
@@ -251,10 +253,10 @@ class Parser {
           break;
 
         default:
-          _throwError(lex.getCurrentToken());
+          _throwError(currentToken);
       }
 
-      node = BinOp(node, lex.getCurrentToken(), _factor());
+      node = BinOp(node, currentToken, _factor());
     }
 
     return node;
@@ -268,25 +270,26 @@ class Parser {
   ///        | variable
   Ast _factor() {
     var result = Ast(NodeType.empty);
+    var currentToken = lex.getCurrentToken();
     switch (lex.getCurrentToken().type) {
       case TokenType.plus:
         _eat(TokenType.plus);
-        result = UnaryOp(lex.getCurrentToken(), _factor());
+        result = UnaryOp(currentToken, _factor());
         break;
 
       case TokenType.minus:
         _eat(TokenType.minus);
-        result = UnaryOp(lex.getCurrentToken(), _factor());
+        result = UnaryOp(currentToken, _factor());
         break;
 
       case TokenType.intergerConst:
         _eat(TokenType.intergerConst);
-        result = Num(lex.getCurrentToken());
+        result = Num(currentToken);
         break;
 
       case TokenType.realConst:
         _eat(TokenType.realConst);
-        result = Num(lex.getCurrentToken());
+        result = Num(currentToken);
         break;
 
       case TokenType.lparen:
@@ -304,7 +307,7 @@ class Parser {
         break;
 
       default:
-        _throwError(lex.getCurrentToken());
+        _throwError(currentToken);
     }
 
     return result;
