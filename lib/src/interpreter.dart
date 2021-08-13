@@ -98,18 +98,20 @@ class Interpreter {
   }
 
   num _visitProgram(Program node) {
-    return _visit(node.block);
+    return _visit(node.block as Block);
   }
 
   int _visitBlock(Block node) {
     for (var decl in node.declarations) {
-      _visit(decl);
+      _visit(decl as VarDeclaration);
     }
     return 0;
   }
 
-  int _visitVarDeclaration(VarDeclaration node) {
-    return 0;
+  dynamic _visitVarDeclaration(VarDeclaration node) {
+    var varName = node.varNode.value;
+    var varValue = globalScope[varName];
+    return varValue;
   }
 
   int _visitType(Type node) {

@@ -88,8 +88,8 @@ class Block extends Ast {
 }
 
 class VarDeclaration extends Ast {
-  Ast varNode;
-  Ast typeNode;
+  Var varNode;
+  Type typeNode;
   VarDeclaration(this.varNode, this.typeNode) : super(NodeType.varDeclaration);
 }
 

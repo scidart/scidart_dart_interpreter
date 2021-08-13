@@ -4,6 +4,7 @@ import 'token.dart';
 
 class Parser {
   Ast ast = Ast(NodeType.empty);
+  Lexer lex = Lexer('');
 
   Parser(Lexer lex) {
     // program : PROGRAM variable SEMI block DOT
@@ -42,55 +43,54 @@ class Parser {
     // | variable
     //
     // variable: ID
-
-    ast = _program(lex);
+    this.lex = lex;
+    lex.getNextToken();
+    ast = _program();
   }
 
   void _throwError(Token token) {
     throw Exception('error parsing ${token.type}');
   }
 
-  void _checkTokenType(Token token, TokenType tokenType, {bool throwErrorEqual = false}) {
-    if (throwErrorEqual) {
-      if (token.type == tokenType) {
-        _throwError(token);
-      }
+  void _eat(TokenType tokenType) {
+    var currentToken = lex.getCurrentToken();
+    if (currentToken.type == tokenType) {
+      lex.getNextToken();
     } else {
-      if (token.type != tokenType) {
-        _throwError(token);
-      }
+      _throwError(currentToken);
     }
   }
 
   /// program : PROGRAM variable SEMI block DOT
-  Ast _program(Lexer lex) {
-    _checkTokenType(lex.getNextToken(), TokenType.program);
-    lex.getNextToken();
-    var varNode = _variable(lex);
-    _checkTokenType(lex.getNextToken(), TokenType.semi);
-    var blockNode = _block(lex);
+  Ast _program() {
+    _eat(TokenType.program);
+    var varNode = _variable();
+    _eat(TokenType.semi);
+    var blockNode = _block();
     var programNode = Program(varNode.value, blockNode);
-    _checkTokenType(lex.getNextToken(), TokenType.dot);
+    _eat(TokenType.dot);
     return programNode;
   }
 
   /// block : declarations compound_statement
-  Ast _block(Lexer lex) {
-    var declaration = _declarations(lex);
-    var compoundStatement = _compoundStatement(lex);
+  Ast _block() {
+    var declaration = _declarations();
+    var compoundStatement = _compoundStatement();
     var node = Block(declaration, compoundStatement);
     return node;
   }
 
   /// declarations : VAR (variable_declaration SEMI)+
   ///              | empty
-  List<Ast> _declarations(Lexer lex) {
+  List<Ast> _declarations() {
     var declarations = <Ast>[];
-    if (lex.getNextToken().type == TokenType.variable) {
-      while (lex.getNextToken().type == TokenType.id) {
-        var varDecl = _variableDeclaration(lex);
+
+    if (lex.check(TokenType.variable)) {
+      _eat(TokenType.variable);
+      while (lex.check(TokenType.id)) {
+        var varDecl = _variableDeclaration();
         declarations.addAll(varDecl);
-        _checkTokenType(lex.getNextToken(), TokenType.semi);
+        _eat(TokenType.semi);
       }
     }
 
@@ -98,20 +98,21 @@ class Parser {
   }
 
   /// variable_declaration : ID (COMMA ID)* COLON type_spec
-  List<Ast> _variableDeclaration(Lexer lex) {
-    var varNodes = <Ast>[];
-    varNodes.add(Var(lex.getNextToken())); // first ID
-    _checkTokenType(lex.getCurrentToken(), TokenType.id);
+  List<Ast> _variableDeclaration() {
+    var varNodes = <Var>[];
+    varNodes.add(Var(lex.getCurrentToken())); // first ID
+    _eat(TokenType.id);
 
-    while (lex.getNextToken().type == TokenType.comma) {
-      varNodes.add(Var(lex.getNextToken()));
-      _checkTokenType(lex.getCurrentToken(), TokenType.id);
+    while (lex.check(TokenType.comma)) {
+      _eat(TokenType.comma);
+      varNodes.add(Var(lex.getCurrentToken()));
+      _eat(TokenType.id);
     }
 
-    _checkTokenType(lex.getCurrentToken(), TokenType.colon);
+    _eat(TokenType.colon);
 
-    var typeNode = _typeSpec(lex);
-    var varDeclarations = <Ast>[];
+    var typeNode = _typeSpec();
+    var varDeclarations = <VarDeclaration>[];
     for (var node in varNodes) {
       varDeclarations.add(VarDeclaration(node, typeNode));
     }
@@ -121,14 +122,16 @@ class Parser {
 
   /// type_spec : INTEGER
   ///           | REAL
-  Ast _typeSpec(Lexer lex) {
+  Type _typeSpec() {
     var node;
-    switch (lex.getNextToken().type) {
+    switch (lex.getCurrentToken().type) {
       case TokenType.integer:
         node = Type(lex.getCurrentToken());
+        _eat(TokenType.integer);
         break;
       case TokenType.real:
         node = Type(lex.getCurrentToken());
+        _eat(TokenType.real);
         break;
       default:
         _throwError(lex.getCurrentToken());
@@ -138,10 +141,10 @@ class Parser {
   }
 
   /// compound_statement : BEGIN statement_list END
-  Ast _compoundStatement(Lexer lex) {
-    _checkTokenType(lex.getCurrentToken(), TokenType.begin);
-    var nodes = _statementList(lex);
-    _checkTokenType(lex.getCurrentToken(), TokenType.end);
+  Ast _compoundStatement() {
+    _eat(TokenType.begin);
+    var nodes = _statementList();
+    _eat(TokenType.end);
 
     var root = Compound();
     root.children.addAll(nodes);
@@ -151,16 +154,15 @@ class Parser {
 
   /// statement_list : statement
   ///                | statement SEMI statement_list
-  List<Ast> _statementList(Lexer lex) {
-    var node = _statement(lex);
+  List<Ast> _statementList() {
+    var node = _statement();
     var results = <Ast>[];
     results.add(node);
 
-    while (lex.getCurrentToken().type == TokenType.semi) {
-      results.add(_statement(lex));
+    while (lex.check(TokenType.semi)) {
+      _eat(TokenType.semi);
+      results.add(_statement());
     }
-
-    _checkTokenType(lex.getCurrentToken(), TokenType.id, throwErrorEqual: true);
 
     return results;
   }
@@ -168,15 +170,14 @@ class Parser {
   /// statement : compound_statement
   ///           | assignment_statement
   ///           | empty
-  Ast _statement(Lexer lex) {
+  Ast _statement() {
     var node;
-    switch (lex.getNextToken().type) {
+    switch (lex.getCurrentToken().type) {
       case TokenType.begin:
-        node = _compoundStatement(lex);
-        lex.getNextToken();
+        node = _compoundStatement();
         break;
       case TokenType.id:
-        node = _assignmentStatement(lex);
+        node = _assignmentStatement();
         break;
       default:
         node = _empty();
@@ -187,19 +188,19 @@ class Parser {
   }
 
   /// assignment_statement : variable ASSIGN expr
-  Ast _assignmentStatement(Lexer lex) {
-    var left = _variable(lex);
-    var token = lex.getNextToken();
-    _checkTokenType(token, TokenType.assign);
-    var right = _expr(lex);
+  Ast _assignmentStatement() {
+    var left = _variable();
+    var token = lex.getCurrentToken();
+    _eat(TokenType.assign);
+    var right = _expr();
     var node = Assign(left, token, right);
     return node;
   }
 
   /// variable : ID
-  Var _variable(Lexer lex) {
+  Var _variable() {
     var node = Var(lex.getCurrentToken());
-    _checkTokenType(lex.getCurrentToken(), TokenType.id);
+    _eat(TokenType.id);
     return node;
   }
 
@@ -209,46 +210,51 @@ class Parser {
   }
 
   /// expr: term ((PLUS | MINUS) term)*
-  Ast _expr(Lexer lex) {
-    var node = _term(lex);
+  Ast _expr() {
+    var node = _term();
     while (lex.getCurrentToken().isPlusMinus()) {
       switch (lex.getCurrentToken().type) {
         case TokenType.plus:
+          _eat(TokenType.plus);
           break;
 
         case TokenType.minus:
+          _eat(TokenType.minus);
           break;
 
         default:
           _throwError(lex.getCurrentToken());
       }
 
-      node = BinOp(node, lex.getCurrentToken(), _term(lex));
+      node = BinOp(node, lex.getCurrentToken(), _term());
     }
 
     return node;
   }
 
   /// term : factor ((MUL | INTEGER_DIV | FLOAT_DIV) factor)*
-  Ast _term(Lexer lex) {
-    var node = _factor(lex);
+  Ast _term() {
+    var node = _factor();
 
-    while (lex.getNextToken().isMulDiv())  {
+    while (lex.getCurrentToken().isMulDiv())  {
       switch (lex.getCurrentToken().type) {
         case TokenType.mult:
+          _eat(TokenType.mult);
           break;
 
         case TokenType.intergerDiv:
+          _eat(TokenType.intergerDiv);
           break;
 
         case TokenType.floatDiv:
+          _eat(TokenType.floatDiv);
           break;
 
         default:
           _throwError(lex.getCurrentToken());
       }
 
-      node = BinOp(node, lex.getCurrentToken(), _factor(lex));
+      node = BinOp(node, lex.getCurrentToken(), _factor());
     }
 
     return node;
@@ -260,36 +266,41 @@ class Parser {
   ///        | REAL_CONST
   ///        | LPAREN expr RPAREN
   ///        | variable
-  Ast _factor(Lexer lex) {
+  Ast _factor() {
     var result = Ast(NodeType.empty);
-    switch (lex.getNextToken().type) {
+    switch (lex.getCurrentToken().type) {
       case TokenType.plus:
-        result = UnaryOp(lex.getCurrentToken(), _factor(lex));
+        _eat(TokenType.plus);
+        result = UnaryOp(lex.getCurrentToken(), _factor());
         break;
 
       case TokenType.minus:
-        result = UnaryOp(lex.getCurrentToken(), _factor(lex));
+        _eat(TokenType.minus);
+        result = UnaryOp(lex.getCurrentToken(), _factor());
         break;
 
       case TokenType.intergerConst:
+        _eat(TokenType.intergerConst);
         result = Num(lex.getCurrentToken());
         break;
 
       case TokenType.realConst:
+        _eat(TokenType.realConst);
         result = Num(lex.getCurrentToken());
         break;
 
       case TokenType.lparen:
-        result = _expr(lex);
-        _checkTokenType(lex.getCurrentToken(), TokenType.rparen);
+        _eat(TokenType.lparen);
+        result = _expr();
+        _eat(TokenType.rparen);
         break;
 
-      case TokenType.assign:
-        result = _expr(lex);
-        break;
+      // case TokenType.assign:
+      //   result = _expr();
+      //   break;
 
       case TokenType.id:
-        result = _variable(lex);
+        result = _variable();
         break;
 
       default:

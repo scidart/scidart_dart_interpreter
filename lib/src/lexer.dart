@@ -72,8 +72,10 @@ class Lexer {
     if (_text[_pos] == '.') {
       _pos++;
       var secondPart = _getAllNumbers();
+      _pos--;
       return Token(TokenType.realConst, value: firstPart + '.' + secondPart);
     } else {
+      _pos--;
       return Token(TokenType.intergerConst, value: firstPart);
     }
   }
@@ -112,7 +114,7 @@ class Lexer {
         number += _text[_pos];
         _pos++;
       } else {
-        _pos--;
+        // _pos--;
         break;
       }
     }
@@ -122,6 +124,10 @@ class Lexer {
 
   Token getCurrentToken() {
     return _currentToken;
+  }
+
+  bool check(TokenType type) {
+    return _currentToken.type == type;
   }
 
   Token getNextToken() {
@@ -134,7 +140,7 @@ class Lexer {
         currentChar = _skipWhiteSpaceOrNewLine();
       }
 
-      if (_isOpeningComment(currentChar)) {
+      while (_isOpeningComment(currentChar)) {
         currentChar =_skipComment();
         currentChar = _skipWhiteSpaceOrNewLine();
       }
