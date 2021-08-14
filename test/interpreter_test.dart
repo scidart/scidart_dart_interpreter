@@ -178,13 +178,13 @@ BEGIN
     x := 11;
 END.
 ''');
-      print(res);
+      expect(interpreter?.globalScope.length, 5);
 
       expect(res, 0);
     });
 
     test('PROGRAM Part10; VAR...', () {
-      var res = interpreter?.process('''
+      interpreter?.process('''
 PROGRAM Part10; {Part10}
 VAR
    number     : INTEGER;
@@ -208,10 +208,7 @@ BEGIN {Part10}
    { writeln('y = ', y); }
 END.  {Part10}
 ''');
-
-      expect(res, 0);
-      expect(res, 0);
-
+      expect(interpreter?.globalScope.length, 6);
     });
 
     test('PROGRAM NameError1;', () {
@@ -243,6 +240,35 @@ END.
 ''');
         print(res);
       }, throwsException);
+    });
+
+    test('PROGRAM Part12;', () {
+      interpreter?.process('''
+PROGRAM Part12;
+VAR
+   a : INTEGER;
+
+PROCEDURE P1;
+VAR
+   b : REAL;
+   k : INTEGER;
+
+   PROCEDURE P2;
+   VAR
+      c, z : INTEGER;
+   BEGIN {P2}
+      z := 777;
+   END;  {P2}
+
+BEGIN {P1}
+
+END;  {P1}
+
+BEGIN {Part12}
+   a := 10;
+END.  {Part12}
+''');
+      expect(interpreter?.globalScope.length, 1);
     });
 
   });

@@ -21,6 +21,7 @@ enum NodeType {
   compound,
   noOp,
   program,
+  procedure,
   block,
 }
 
@@ -77,8 +78,14 @@ class NoOp extends Ast {
 
 class Program extends Ast {
   String name;
-  Ast block;
+  Block block;
   Program(this.name, this.block) : super(NodeType.program);
+}
+
+class ProcedureDecl extends Ast {
+  String name;
+  Block block;
+  ProcedureDecl(this.name, this.block) : super(NodeType.procedure);
 }
 
 class Block extends Ast {

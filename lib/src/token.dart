@@ -27,6 +27,7 @@ enum TokenType {
   end,
   program,
   variable,
+  procedure,
 
   // statement delimitation tokens
   semi,
@@ -41,6 +42,7 @@ class Token {
 
   static var reservedKeywordsStringToToken = <String, Token>{
     'PROGRAM' : Token(TokenType.program),
+    'PROCEDURE' : Token(TokenType.procedure),
     'VAR': Token(TokenType.variable),
     'DIV': Token(TokenType.intergerDiv),
     'INTEGER': Token(TokenType.integer),

@@ -12,7 +12,8 @@ class Parser {
     // block : declarations compound_statement
     //
     // declarations : VAR (variable_declaration SEMI)+
-    // | empty
+    //              | (PROCEDURE ID SEMI block SEMI)*
+    //              | empty
     //
     // variable_declaration : ID (COMMA ID)* COLON type_spec
     //
@@ -21,11 +22,11 @@ class Parser {
     // compound_statement : BEGIN statement_list END
     //
     // statement_list : statement
-    // | statement SEMI statement_list
+    //                | statement SEMI statement_list
     //
     // statement : compound_statement
-    // | assignment_statement
-    // | empty
+    //           | assignment_statement
+    //           | empty
     //
     // assignment_statement : variable ASSIGN expr
     //
@@ -73,7 +74,7 @@ class Parser {
   }
 
   /// block : declarations compound_statement
-  Ast _block() {
+  Block _block() {
     var declaration = _declarations();
     var compoundStatement = _compoundStatement();
     var node = Block(declaration, compoundStatement);
@@ -81,6 +82,7 @@ class Parser {
   }
 
   /// declarations : VAR (variable_declaration SEMI)+
+  ///              | (PROCEDURE ID SEMI block SEMI)*
   ///              | empty
   List<Ast> _declarations() {
     var declarations = <Ast>[];
@@ -92,6 +94,16 @@ class Parser {
         declarations.addAll(varDecl);
         _eat(TokenType.semi);
       }
+    }
+    while (lex.check(TokenType.procedure)) {
+      _eat(TokenType.procedure);
+      var procName = lex.getCurrentToken().getValue();
+      _eat(TokenType.id);
+      _eat(TokenType.semi);
+      var block = _block();
+      var procDecl = ProcedureDecl(procName, block);
+      declarations.add(procDecl);
+      _eat(TokenType.semi);
     }
 
     return declarations;

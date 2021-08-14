@@ -218,6 +218,9 @@ class Interpreter {
   void _visitNoOp(NoOp node) {
   }
 
+  void _visitProcedureDecl(ProcedureDecl node) {
+  }
+
   num _visit(Ast node) {
     var result;
     switch (node.type) {
@@ -267,6 +270,11 @@ class Interpreter {
 
       case NodeType.block:
         result = _visitBlock(node as Block);
+        break;
+
+      case NodeType.procedure:
+        _visitProcedureDecl(node as ProcedureDecl);
+        result = 0;
         break;
 
       default:

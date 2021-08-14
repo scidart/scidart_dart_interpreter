@@ -107,6 +107,9 @@ class SymbolTableBuilder {
   void _visitType(Type node) {
   }
 
+  void _visitProcedureDecl(ProcedureDecl node) {
+  }
+
   void _visit(Ast node) {
     switch (node.type) {
 
@@ -152,6 +155,10 @@ class SymbolTableBuilder {
 
       case NodeType.type:
         _visitType(node as Type);
+        break;
+
+      case NodeType.procedure:
+        _visitProcedureDecl(node as ProcedureDecl);
         break;
 
       default:
