@@ -208,9 +208,42 @@ BEGIN {Part10}
    { writeln('y = ', y); }
 END.  {Part10}
 ''');
-      print(res);
 
       expect(res, 0);
+      expect(res, 0);
+
     });
+
+    test('PROGRAM NameError1;', () {
+      expect(() {
+        var res = interpreter?.process('''
+PROGRAM NameError1;
+VAR
+   a : INTEGER;
+
+BEGIN
+   a := 2 + b;
+END.
+''');
+        print(res);
+      }, throwsException);
+    });
+
+    test('PROGRAM NameError2;', () {
+      expect(() {
+        var res = interpreter?.process('''
+PROGRAM NameError2;
+VAR
+   b : INTEGER;
+
+BEGIN
+   b := 1;
+   a := b + 2;
+END.
+''');
+        print(res);
+      }, throwsException);
+    });
+
   });
 }

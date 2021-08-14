@@ -1,4 +1,5 @@
 import 'package:scidart_dart_interpreter/src/lexer.dart';
+import 'package:scidart_dart_interpreter/src/symbol.dart';
 import 'package:scidart_dart_interpreter/src/token.dart';
 
 import 'ast.dart';
@@ -82,14 +83,21 @@ import 'parser.dart';
 
 class Interpreter {
   var globalScope = <String, dynamic>{};
+  SymbolTable symTab = SymbolTable();
 
   void _throwError(Ast node) {
     throw Exception('error interpreting ${node.type}');
   }
 
+  void _throwNotDeclaredVarError(String varName) {
+    throw Exception('variable not declared: $varName');
+  }
+
   num process(String text) {
     var lex = Lexer(text);
     var parser = Parser(lex);
+    var symtabBuilder = SymbolTableBuilder(parser.ast);
+    symTab = symtabBuilder.symtab;
     var res = _visit(parser.ast);
 
     print(globalScope);
@@ -189,17 +197,22 @@ class Interpreter {
 
   void _visitAssign(Assign node) {
     var varName = node.left.token.getValue();
+
+    var varSymbol = symTab.lookup(varName);
+    if (varSymbol == null) {
+      _throwNotDeclaredVarError(varName);
+    }
     globalScope[varName] = _visit(node.right);
   }
 
   dynamic _visitVar(Var node) {
     var varName = node.token.getValue();
-    var val = globalScope[varName];
-    if (val == null) {
-      throw Exception('variable not declared: $varName');
-    } else {
-      return val;
+    var varSymbol = symTab.lookup(varName);
+    if (varSymbol == null) {
+      _throwNotDeclaredVarError(varName);
     }
+    var val = globalScope[varName];
+    return val;
   }
 
   void _visitNoOp(NoOp node) {

@@ -30,3 +30,5 @@ Please file feature requests and bugs at the [issue tracker][tracker].
 
 ### tutorial
 - https://ruslanspivak.com/lsbasi-part9/
+- code part 10: https://github.com/rspivak/lsbasi/blob/master/part10/python/spi.py
+- 
