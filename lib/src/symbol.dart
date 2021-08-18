@@ -45,15 +45,27 @@ class SymbolTable {
   }
 }
 
-class SymbolTableBuilder {
+class SemanticAnalyzer {
   SymbolTable symtab = SymbolTable();
 
-  SymbolTableBuilder(Ast tree) {
+  SemanticAnalyzer(Ast tree) {
     _visit(tree);
   }
 
   void _throwError(Ast node) {
-    throw Exception('error generatin symbol table for ${node.type}');
+    throw Exception('Error generating symbol table for: ${node.type}');
+  }
+
+  void _throwDuplicatedError(Ast node) {
+    throw Exception('Error duplicate identifier found: ${node.type}');
+  }
+
+  void _throwTypeNotFoundError(Ast node) {
+    throw Exception('Error type not found: ${node.type}');
+  }
+
+  void _throwSymbolNotFoundError(Ast node) {
+    throw Exception('Error symbol (identifier) not found: ${node.type}');
   }
 
   void _visitBlock(Block node) {
@@ -67,18 +79,6 @@ class SymbolTableBuilder {
     _visit(node.block);
   }
 
-  void _visitBinOp(BinOp node) {
-    _visit(node.left);
-    _visit(node.right);
-  }
-
-  void _visitNum(Num node) {
-  }
-
-  void _visitUnaryOp(UnaryOp node) {
-    _visit(node.expr);
-  }
-
   void _visitCompound(Compound node) {
     for (var child in node.children) {
       _visit(child);
@@ -88,20 +88,44 @@ class SymbolTableBuilder {
   void _visitNoOp(NoOp node) {
   }
 
+  void _visitBinOp(BinOp node) {
+    _visit(node.left);
+    _visit(node.right);
+  }
+
   void _visitVarDeclaration(VarDeclaration node) {
     var typeName = node.typeNode;
     var typeSymbol = symtab.lookup(typeName.token.type.toString());
     if (typeSymbol != null) {
       var varName = node.varNode.value;
       var varSymbol = VarSymbol(varName, typeSymbol);
+      if (symtab.lookup(varName) != null) {
+        _throwDuplicatedError(node);
+      }
       symtab.define(varSymbol);
+    } else {
+      _throwTypeNotFoundError(node);
     }
   }
 
   void _visitAssign(Assign node) {
+    _visit(node.right);
+    _visit(node.left);
   }
 
   void _visitVar(Var node) {
+    var typeName = node.value;
+    var typeSymbol = symtab.lookup(typeName);
+    if (typeSymbol == null) {
+      _throwSymbolNotFoundError(node);
+    }
+  }
+
+  void _visitNum(Num node) {
+  }
+
+  void _visitUnaryOp(UnaryOp node) {
+    _visit(node.expr);
   }
 
   void _visitType(Type node) {

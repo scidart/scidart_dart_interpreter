@@ -271,5 +271,46 @@ END.  {Part12}
       expect(interpreter?.globalScope.length, 1);
     });
 
+    test('duplicated symbol error', () {
+      expect(() {
+        var res = interpreter?.process('''
+program SymTab6;
+  var x, y : integer;
+  var y : real;
+  begin
+  x := x + y;
+end.
+''');
+        print(res);
+      }, throwsException);
+    });
+
+    test('not declared symbol error', () {
+      expect(() {
+        var res = interpreter?.process('''
+program SymTab6;
+  var x: integer;
+  begin
+  x := x + y;
+end.
+''');
+        print(res);
+      }, throwsException);
+    });
+
+    test('not valit type symbol error', () {
+      expect(() {
+        var res = interpreter?.process('''
+program SymTab6;
+  var x, y: integer;
+  var z: something;
+  begin
+  x := x + y;
+end.
+''');
+        print(res);
+      }, throwsException);
+    });
+
   });
 }

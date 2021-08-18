@@ -96,7 +96,7 @@ class Interpreter {
   num process(String text) {
     var lex = Lexer(text);
     var parser = Parser(lex);
-    var symtabBuilder = SymbolTableBuilder(parser.ast);
+    var symtabBuilder = SemanticAnalyzer(parser.ast);
     symTab = symtabBuilder.symtab;
     var res = _visit(parser.ast);
 
