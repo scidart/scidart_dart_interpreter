@@ -11,11 +11,16 @@ class Parser {
     //
     // block : declarations compound_statement
     //
-    // declarations : VAR (variable_declaration SEMI)+
-    //              | (PROCEDURE ID SEMI block SEMI)*
+    // declarations : (VAR (variable_declaration SEMI)+)*
+    //              | (PROCEDURE ID (LPAREN formal_parameter_list RPAREN)? SEMI block SEMI)*
     //              | empty
     //
     // variable_declaration : ID (COMMA ID)* COLON type_spec
+    //
+    // formal_parameter_list : formal_parameters
+    //                       | formal_parameters SEMI formal_parameter_list
+    //
+    // formal_parameters : ID (COMMA ID)* COLON type_spec
     //
     // type_spec : INTEGER | REAL
     //
@@ -81,32 +86,83 @@ class Parser {
     return node;
   }
 
-  /// declarations : VAR (variable_declaration SEMI)+
-  ///              | (PROCEDURE ID SEMI block SEMI)*
+  /// declarations : (VAR (variable_declaration SEMI)+)*
+  ///              | (PROCEDURE ID (LPAREN formal_parameter_list RPAREN)? SEMI block SEMI)*
   ///              | empty
   List<Ast> _declarations() {
     var declarations = <Ast>[];
 
-    if (lex.check(TokenType.variable)) {
-      _eat(TokenType.variable);
-      while (lex.check(TokenType.id)) {
-        var varDecl = _variableDeclaration();
-        declarations.addAll(varDecl);
+    while (true) {
+      if (lex.check(TokenType.variable)) {
+        _eat(TokenType.variable);
+        while (lex.check(TokenType.id)) {
+          var varDecl = _variableDeclaration();
+          declarations.addAll(varDecl);
+          _eat(TokenType.semi);
+        }
+      } else if (lex.check(TokenType.procedure)) {
+        _eat(TokenType.procedure);
+        var procName = lex.getCurrentToken().getValue();
+        _eat(TokenType.id);
+
+        var param;
+        if (lex.check(TokenType.lparen)) {
+          _eat(TokenType.lparen);
+          param = _formalParameterList();
+          _eat(TokenType.rparen);
+        }
         _eat(TokenType.semi);
+        var block = _block();
+        var procDecl = ProcedureDecl(procName, param, block);
+        declarations.add(procDecl);
+        _eat(TokenType.semi);
+      } else {
+        break;
       }
-    }
-    while (lex.check(TokenType.procedure)) {
-      _eat(TokenType.procedure);
-      var procName = lex.getCurrentToken().getValue();
-      _eat(TokenType.id);
-      _eat(TokenType.semi);
-      var block = _block();
-      var procDecl = ProcedureDecl(procName, block);
-      declarations.add(procDecl);
-      _eat(TokenType.semi);
     }
 
     return declarations;
+  }
+
+  /// formal_parameter_list : formal_parameters
+  ///                       | formal_parameters SEMI formal_parameter_list
+  List<Param> _formalParameterList() {
+    var paramList = <Param>[];
+
+    if (lex.notCheck(TokenType.id)) {
+      return paramList;
+    }
+
+    paramList.addAll(_formalParamaters());
+
+    while (lex.check(TokenType.semi)) {
+      _eat(TokenType.semi);
+      paramList.addAll(_formalParamaters());
+    }
+    return paramList;
+  }
+
+  /// formal_parameters : ID (COMMA ID)* COLON type_spec
+  List<Param> _formalParamaters() {
+    var varNodes = <Var>[];
+    varNodes.add(Var(lex.getCurrentToken()));
+    _eat(TokenType.id);
+
+    while (lex.check(TokenType.comma)) {
+      _eat(TokenType.comma);
+      varNodes.add(Var(lex.getCurrentToken()));
+      _eat(TokenType.id);
+    }
+
+    _eat(TokenType.colon);
+    var typeNode = _typeSpec();
+
+    var params = <Param>[];
+    for (var varNode in varNodes) {
+      params.add(Param(varNode, typeNode));
+    }
+
+    return params;
   }
 
   /// variable_declaration : ID (COMMA ID)* COLON type_spec

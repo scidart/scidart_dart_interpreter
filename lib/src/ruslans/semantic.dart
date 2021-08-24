@@ -1,52 +1,8 @@
-import 'package:scidart_dart_interpreter/src/token.dart';
-
 import 'ast.dart';
-
-enum SymbolType {
-  customType,
-  buildinType,
-  varType
-}
-
-class Symbol {
-  String name;
-  SymbolType type;
-
-  Symbol(this.name, this.type);
-}
-
-class BuildinTypeSymbol extends Symbol {
-  BuildinTypeSymbol(String name) : super(name, SymbolType.buildinType);
-}
-
-class VarSymbol extends Symbol {
-  Symbol symbol;
-  VarSymbol(String name, this.symbol) : super(name, SymbolType.varType);
-}
-
-class SymbolTable {
-  final _symbols = <String, Symbol>{};
-
-  SymbolTable() {
-    _initBuildins();
-  }
-
-  void _initBuildins() {
-    define(BuildinTypeSymbol(TokenType.integer.toString()));
-    define(BuildinTypeSymbol(TokenType.real.toString()));
-  }
-
-  void define(Symbol symbol) {
-    _symbols[symbol.name] = symbol;
-  }
-
-  Symbol? lookup(String name) {
-    return _symbols[name];
-  }
-}
+import 'symbol.dart';
 
 class SemanticAnalyzer {
-  SymbolTable symtab = SymbolTable();
+  ScopedSymbolTable currentScope = ScopedSymbolTable('none', ScopeType.none, -1);
 
   SemanticAnalyzer(Ast tree) {
     _visit(tree);
@@ -76,6 +32,9 @@ class SemanticAnalyzer {
   }
 
   void _visitProgram(Program node) {
+    var globalScope = ScopedSymbolTable('global', ScopeType.global, 1);
+    currentScope = globalScope;
+
     _visit(node.block);
   }
 
@@ -93,16 +52,43 @@ class SemanticAnalyzer {
     _visit(node.right);
   }
 
+  void _visitProcedureDecl(ProcedureDecl node) {
+    var procName = node.name;
+    var procSymbol = ProcedureSymbol(procName);
+    currentScope.insert(procSymbol);
+
+    var procedureScore = ScopedSymbolTable(procName, ScopeType.procedure, currentScope.scopeLevel + 1, enclosingScope: currentScope);
+    currentScope = procedureScore;
+
+    for (var paramNode in node.params) {
+      var paramName = paramNode.varNode.value;
+      var paramType = currentScope.lookup(paramNode.typeNode.token.getTypeName());
+      if (paramType != null) {
+        var varSymbol = VarSymbol(paramName, paramType);
+        if (currentScope.lookup(paramName) != null) {
+          _throwDuplicatedError(node);
+        }
+        currentScope.insert(varSymbol);
+        procSymbol.insertParam(varSymbol);
+      } else {
+        _throwTypeNotFoundError(node);
+      }
+    }
+
+    _visit(node.block);
+    currentScope = currentScope.enclosingScope!;
+  }
+
   void _visitVarDeclaration(VarDeclaration node) {
     var typeName = node.typeNode;
-    var typeSymbol = symtab.lookup(typeName.token.type.toString());
+    var typeSymbol = currentScope.lookup(typeName.token.getTypeName());
     if (typeSymbol != null) {
       var varName = node.varNode.value;
       var varSymbol = VarSymbol(varName, typeSymbol);
-      if (symtab.lookup(varName) != null) {
+      if (currentScope.lookup(varName, currentScopeOnly: true) != null) {
         _throwDuplicatedError(node);
       }
-      symtab.define(varSymbol);
+      currentScope.insert(varSymbol);
     } else {
       _throwTypeNotFoundError(node);
     }
@@ -115,7 +101,7 @@ class SemanticAnalyzer {
 
   void _visitVar(Var node) {
     var typeName = node.value;
-    var typeSymbol = symtab.lookup(typeName);
+    var typeSymbol = currentScope.lookup(typeName);
     if (typeSymbol == null) {
       _throwSymbolNotFoundError(node);
     }
@@ -131,7 +117,9 @@ class SemanticAnalyzer {
   void _visitType(Type node) {
   }
 
-  void _visitProcedureDecl(ProcedureDecl node) {
+  void _visitParam(Param node) {
+    _visit(node.varNode);
+    _visit(node.typeNode);
   }
 
   void _visit(Ast node) {
@@ -185,7 +173,11 @@ class SemanticAnalyzer {
         _visitProcedureDecl(node as ProcedureDecl);
         break;
 
-      default:
+      case NodeType.param:
+        _visitParam(node as Param);
+        break;
+
+      case NodeType.empty:
         _throwError(node);
     }
   }

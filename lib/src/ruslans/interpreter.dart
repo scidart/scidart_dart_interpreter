@@ -1,9 +1,11 @@
-import 'package:scidart_dart_interpreter/src/lexer.dart';
-import 'package:scidart_dart_interpreter/src/symbol.dart';
-import 'package:scidart_dart_interpreter/src/token.dart';
+import 'package:scidart_dart_interpreter/src/ruslans/ast_visualizer.dart';
+import 'package:scidart_dart_interpreter/src/ruslans/lexer.dart';
+import 'package:scidart_dart_interpreter/src/ruslans/symbol.dart';
+import 'package:scidart_dart_interpreter/src/ruslans/token.dart';
 
 import 'ast.dart';
 import 'parser.dart';
+import 'semantic.dart';
 
 // class Interpreter2 {
 //   int _factor(Lexer lex) {
@@ -82,26 +84,31 @@ import 'parser.dart';
 // }
 
 class Interpreter {
-  var globalScope = <String, dynamic>{};
-  SymbolTable symTab = SymbolTable();
+  String genDot = '';
+  ScopedSymbolTable? symTab;
+  var globalMemory = <String, dynamic>{};
+  Ast? _ast;
 
   void _throwError(Ast node) {
     throw Exception('error interpreting ${node.type}');
   }
 
-  void _throwNotDeclaredVarError(String varName) {
-    throw Exception('variable not declared: $varName');
-  }
-
   num process(String text) {
     var lex = Lexer(text);
     var parser = Parser(lex);
-    var symtabBuilder = SemanticAnalyzer(parser.ast);
-    symTab = symtabBuilder.symtab;
+    _ast = parser.ast;
+
+    if (_ast == null) {
+      throw Exception('error interpreting, the AST can be null, check your parser...');
+    }
+
+    var astVis = AstVisualizer(_ast!);
+    var symtabBuilder = SemanticAnalyzer(_ast!);
+
+    genDot = astVis.genDot();
+    symTab = symtabBuilder.currentScope;
+
     var res = _visit(parser.ast);
-
-    print(globalScope);
-
     return res;
   }
 
@@ -126,7 +133,7 @@ class Interpreter {
   }
 
   num _visitBinOp(BinOp node) {
-    var result;
+    num result = 0;
     switch (node.op.type) {
       case TokenType.plus:
         result = _visit(node.left) + _visit(node.right);
@@ -197,21 +204,13 @@ class Interpreter {
 
   void _visitAssign(Assign node) {
     var varName = node.left.token.getValue();
-
-    var varSymbol = symTab.lookup(varName);
-    if (varSymbol == null) {
-      _throwNotDeclaredVarError(varName);
-    }
-    globalScope[varName] = _visit(node.right);
+    var varValue = _visit(node.right);
+    globalMemory[varName] = varValue;
   }
 
   dynamic _visitVar(Var node) {
     var varName = node.token.getValue();
-    var varSymbol = symTab.lookup(varName);
-    if (varSymbol == null) {
-      _throwNotDeclaredVarError(varName);
-    }
-    var val = globalScope[varName];
+    var val = globalMemory[varName];
     return val;
   }
 
@@ -219,6 +218,9 @@ class Interpreter {
   }
 
   void _visitProcedureDecl(ProcedureDecl node) {
+  }
+
+  void _visitParam(Param node) {
   }
 
   num _visit(Ast node) {
@@ -249,6 +251,7 @@ class Interpreter {
 
       case NodeType.variable:
         result = _visitVar(node as Var);
+        result = result ?? 0;
         break;
 
       case NodeType.noOp:
@@ -277,8 +280,14 @@ class Interpreter {
         result = 0;
         break;
 
-      default:
+      case NodeType.param:
+        _visitParam(node as Param);
+        result = 0;
+        break;
+
+      case NodeType.empty:
         _throwError(node);
+        result = 0;
     }
 
     return result;

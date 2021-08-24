@@ -1,4 +1,4 @@
-import 'package:scidart_dart_interpreter/src/token.dart';
+import 'package:scidart_dart_interpreter/src/ruslans/token.dart';
 
 enum NodeType {
   // content
@@ -16,6 +16,7 @@ enum NodeType {
   assign,
   type,
   varDeclaration,
+  param,
 
   // statement nodes
   compound,
@@ -26,6 +27,7 @@ enum NodeType {
 }
 
 class Ast {
+  int num = 0;
   NodeType type;
   Ast(this.type);
 }
@@ -84,8 +86,9 @@ class Program extends Ast {
 
 class ProcedureDecl extends Ast {
   String name;
+  List<Param> params;
   Block block;
-  ProcedureDecl(this.name, this.block) : super(NodeType.procedure);
+  ProcedureDecl(this.name, this.params, this.block) : super(NodeType.procedure);
 }
 
 class Block extends Ast {
@@ -103,4 +106,11 @@ class VarDeclaration extends Ast {
 class Type extends Ast {
   Token token;
   Type(this.token) : super(NodeType.type);
+}
+
+class Param extends Ast {
+  Var varNode;
+  Type typeNode;
+
+  Param(this.varNode, this.typeNode) : super(NodeType.param);
 }

@@ -41,14 +41,14 @@ class Token {
   String? _value;
 
   static var reservedKeywordsStringToToken = <String, Token>{
-    'PROGRAM' : Token(TokenType.program),
-    'PROCEDURE' : Token(TokenType.procedure),
-    'VAR': Token(TokenType.variable),
-    'DIV': Token(TokenType.intergerDiv),
-    'INTEGER': Token(TokenType.integer),
-    'REAL': Token(TokenType.real),
-    'BEGIN': Token(TokenType.begin),
-    'END': Token(TokenType.end),
+    'program' : Token(TokenType.program),
+    'procedure' : Token(TokenType.procedure),
+    'var': Token(TokenType.variable),
+    'div': Token(TokenType.intergerDiv),
+    'integer': Token(TokenType.integer),
+    'real': Token(TokenType.real),
+    'begin': Token(TokenType.begin),
+    'end': Token(TokenType.end),
   };
 
   static var stringCompoundSymbolToToken = <String, Token>{
@@ -103,6 +103,10 @@ class Token {
 
   String getValue() {
     return _value!;
+  }
+
+  String getTypeName() {
+    return type.toString();
   }
 
   bool isOperand() {

@@ -1,5 +1,7 @@
-import 'package:scidart_dart_interpreter/src/interpreter.dart';
+import 'package:scidart_dart_interpreter/src/ruslans/interpreter.dart';
 import 'package:test/test.dart';
+
+import 'helpers/helpers.dart';
 
 void main() {
   group('Simple operations test', () {
@@ -158,6 +160,14 @@ void main() {
       expect(res, 10);
     });
 
+  });
+
+  group('simple program structures', () {
+    Interpreter? interpreter;
+
+    setUp(() {
+      interpreter = Interpreter();
+    });
 
     test('BEGIN a := 2; END.', () {
       var res = interpreter?.process('BEGIN a := 2; END.');
@@ -178,9 +188,18 @@ BEGIN
     x := 11;
 END.
 ''');
-      expect(interpreter?.globalScope.length, 5);
+      expect(interpreter?.globalMemory.length, 5);
 
       expect(res, 0);
+    });
+
+  });
+
+  group('variable declarations and comments', () {
+    Interpreter? interpreter;
+
+    setUp(() {
+      interpreter = Interpreter();
     });
 
     test('PROGRAM Part10; VAR...', () {
@@ -208,7 +227,7 @@ BEGIN {Part10}
    { writeln('y = ', y); }
 END.  {Part10}
 ''');
-      expect(interpreter?.globalScope.length, 6);
+      expect(interpreter?.globalMemory.length, 6);
     });
 
     test('PROGRAM NameError1;', () {
@@ -268,7 +287,7 @@ BEGIN {Part12}
    a := 10;
 END.  {Part12}
 ''');
-      expect(interpreter?.globalScope.length, 1);
+      expect(interpreter?.globalMemory.length, 1);
     });
 
     test('duplicated symbol error', () {
@@ -311,6 +330,45 @@ end.
         print(res);
       }, throwsException);
     });
+  });
 
+  group('scoped variables', () {
+    const directory = './test/reuslans_interpreter_files/';
+    Interpreter? interpreter;
+
+    setUp(() {
+      interpreter = Interpreter();
+    });
+
+    test('global scope', () async {
+      var code = '''
+program Main;
+   var x, y : integer;
+begin
+   x := x + y;
+end.
+''';
+      interpreter?.process(code);
+      await saveTree(interpreter!.genDot, directory + 'scoped_variables_global_scode');
+    });
+
+    test('procedure declaration', () async {
+      var code = '''
+program Main;
+   var x, y: real;
+
+   procedure Alpha(a : integer);
+      var y : integer;
+   begin
+      x := a + x + y;
+   end;
+
+begin { Main }
+
+end.  { Main }
+''';
+      interpreter?.process(code);
+      await saveTree(interpreter!.genDot, directory + 'scoped_variables_procedure_declaration');
+    });
   });
 }

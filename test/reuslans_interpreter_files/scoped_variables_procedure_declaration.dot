@@ -1,0 +1,58 @@
+digraph astgraph {
+    node [shape=circle, fontsize=12, fontname="Courier", height=.1];
+    ranksep=.3;
+    edge [arrowsize=.5]
+    node1 [label="Program"]
+    node2 [label="Block"]
+    node3 [label="VarDecl"]
+    node4 [label="x"]
+    node3 -> node4
+    node5 [label="TokenType.real"]
+    node3 -> node5
+    node6 [label="VarDecl"]
+    node7 [label="y"]
+    node6 -> node7
+    node8 [label="TokenType.real"]
+    node6 -> node8
+    node9 [label="ProcDecl:Alpha"]
+    node10 [label="Param"]
+    node11 [label="a"]
+    node10 -> node11
+    node12 [label="TokenType.integer"]
+    node10 -> node12
+    node9 -> node10
+    node13 [label="Block"]
+    node14 [label="VarDecl"]
+    node15 [label="y"]
+    node14 -> node15
+    node16 [label="TokenType.integer"]
+    node14 -> node16
+    node17 [label="Compound"]
+    node18 [label="TokenType.assign"]
+    node19 [label="x"]
+    node20 [label="TokenType.plus"]
+    node21 [label="TokenType.plus"]
+    node22 [label="a"]
+    node23 [label="x"]
+    node21 -> node22
+    node21 -> node23
+    node24 [label="y"]
+    node20 -> node21
+    node20 -> node24
+    node18 -> node19
+    node18 -> node20
+    node17 -> node18
+    node25 [label="NoOP"]
+    node17 -> node25
+    node13 -> node14
+    node13 -> node17
+    node9 -> node13
+    node26 [label="Compound"]
+    node27 [label="NoOP"]
+    node26 -> node27
+    node2 -> node3
+    node2 -> node6
+    node2 -> node9
+    node2 -> node26
+    node1 -> node2
+}

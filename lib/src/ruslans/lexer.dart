@@ -1,4 +1,4 @@
-import 'package:scidart_dart_interpreter/src/token.dart';
+import 'package:scidart_dart_interpreter/src/ruslans/token.dart';
 
 class Lexer {
   int _pos = 0;
@@ -58,8 +58,8 @@ class Lexer {
     _pos--;
 
     var token;
-    if (Token.reservedKeywordsStringToToken[result] != null) {
-      token = Token.reservedKeywordsStringToToken[result];
+    if (Token.reservedKeywordsStringToToken[result.toLowerCase()] != null) {
+      token = Token.reservedKeywordsStringToToken[result.toLowerCase()];
     } else {
       token = Token(TokenType.id, value: result);
     }
@@ -128,6 +128,10 @@ class Lexer {
 
   bool check(TokenType type) {
     return _currentToken.type == type;
+  }
+
+  bool notCheck(TokenType type) {
+    return _currentToken.type != type;
   }
 
   Token getNextToken() {
